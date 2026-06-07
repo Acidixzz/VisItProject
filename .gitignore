@@ -1,0 +1,44 @@
+# Virtual environments
+manga_env/
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Secrets
+.env
+*.env
+
+# Generated sidecars and meshes
+*_depth.png
+*_edges.png
+*_intensity.png
+*_mask.png
+*.vtk
+
+# Source images and binary assets (code-only repo)
+*.jpg
+*.JPG
+*.jpeg
+*.JPEG
+*.png
+*.PNG
+*.gif
+*.webp
+
+# IDE / OS
+.cursor/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Misc local folders
+MangaPopup/
+_test_*.png
+assets/
