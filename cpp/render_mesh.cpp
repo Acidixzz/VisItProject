@@ -211,7 +211,7 @@ int main(int argc, char* argv[]) {
     actor->GetProperty()->BackfaceCullingOff();
     actor->GetProperty()->LightingOff();
 
-    vtkSmartPointer<vtkImageData> texture_img = manga::ReadImage2D(opt.texture_path);
+    vtkSmartPointer<vtkImageData> texture_img = image::ReadImage2D(opt.texture_path);
     if (!texture_img) {
         std::cerr << "Failed to read texture: " << opt.texture_path << "\n";
         return 1;

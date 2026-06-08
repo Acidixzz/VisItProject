@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the C++ manga pipeline in WSL / Linux.
+# Build the C++ image pipeline in WSL / Linux.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -27,10 +27,10 @@ echo
 echo "Built:"
 echo "  ${BUILD_DIR}/build_character_mesh"
 echo "  ${BUILD_DIR}/render_mesh"
-echo "  ${BUILD_DIR}/manga_pipeline"
+echo "  ${BUILD_DIR}/image_pipeline"
 echo
 echo "Linux/WSL example:"
-echo "  ${BUILD_DIR}/manga_pipeline /mnt/c/path/to/luffy.jpg --z-scale 2"
+echo "  ${BUILD_DIR}/image_pipeline /mnt/c/path/to/luffy.jpg --z-scale 2"
 echo "  ./run_all.sh luffy.jpg"
 echo
 echo "Mesh only:"

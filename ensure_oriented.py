@@ -3,7 +3,7 @@
 
 import sys
 
-from manga_pipeline import ensure_oriented
+from image_pipeline import ensure_oriented
 
 
 def main():

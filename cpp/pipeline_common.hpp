@@ -12,7 +12,7 @@
 #include <vtkPNGReader.h>
 #include <vtkSmartPointer.h>
 
-namespace manga {
+namespace image {
 
 inline bool StartsWith(const std::string& s, const char* prefix) {
     return s.rfind(prefix, 0) == 0;
@@ -162,4 +162,4 @@ inline std::string ShellQuote(const std::string& s) {
 #endif
 }
 
-}  // namespace manga
+}  // namespace image

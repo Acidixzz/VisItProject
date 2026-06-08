@@ -46,7 +46,7 @@ void PrintUsage(const char* prog) {
 }
 
 bool ParseArgs(int argc, char* argv[], Options* opt) {
-    if (argc < 2 || manga::StartsWith(argv[1], "--")) {
+    if (argc < 2 || image::StartsWith(argv[1], "--")) {
         PrintUsage(argv[0]);
         return false;
     }
@@ -106,22 +106,22 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    vtkSmartPointer<vtkImageData> image = manga::ReadImage2D(opt.image_path);
-    if (!image) {
+    vtkSmartPointer<vtkImageData> img = image::ReadImage2D(opt.image_path);
+    if (!img) {
         std::cerr << "Failed to read image: " << opt.image_path << "\n";
         return 1;
     }
 
     int imageDims[3];
-    image->GetDimensions(imageDims);
+    img->GetDimensions(imageDims);
 
     if (opt.depth_path.empty()) {
-        opt.depth_path = manga::JoinPath(manga::Dirname(opt.image_path),
-                                         manga::Stem(opt.image_path) + "_depth.png");
+        opt.depth_path = image::JoinPath(image::Dirname(opt.image_path),
+                                         image::Stem(opt.image_path) + "_depth.png");
     }
     if (opt.output_path.empty()) {
-        opt.output_path = manga::JoinPath(manga::Dirname(opt.image_path),
-                                          manga::Stem(opt.image_path) + ".vtk");
+        opt.output_path = image::JoinPath(image::Dirname(opt.image_path),
+                                          image::Stem(opt.image_path) + ".vtk");
     }
 
     vtkSmartPointer<vtkPNGReader> depthReader = vtkSmartPointer<vtkPNGReader>::New();
@@ -183,7 +183,7 @@ int main(int argc, char* argv[]) {
             // PNG sidecars from make_sidecars.py match image (W,H); use direct sampling.
             // VisIt only transposes when VTK depth dims are swapped vs the source image.
 
-            const float depthValue = manga::SampleSidecar(depthImg, sidecarX, sidecarY);
+            const float depthValue = image::SampleSidecar(depthImg, sidecarX, sidecarY);
             int height = 1 + static_cast<int>(depthValue * static_cast<float>(zdim - 1));
             height = std::clamp(height, 1, zdim - 1);
 

@@ -1,8 +1,8 @@
-# make_sidecars.py — thin wrapper; use manga_pipeline.py for the full flow.
+# make_sidecars.py — thin wrapper; use image_pipeline.py for the full flow.
 
 import sys
 
-from manga_pipeline import generate_sidecars
+from image_pipeline import generate_sidecars
 
 
 def parse_args():

@@ -4,7 +4,7 @@
 import argparse
 import os
 
-from manga_pipeline import make_lineart_bw
+from image_pipeline import make_lineart_bw
 from PIL import Image, ImageOps
 
 

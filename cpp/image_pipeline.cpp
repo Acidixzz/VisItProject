@@ -1,8 +1,8 @@
-// End-to-end manga mesh pipeline (C++ orchestrator):
+// End-to-end image mesh pipeline (C++ orchestrator):
 //   1. Generate *_depth.png / *_edges.png via Python (Depth-Anything still needs torch)
 //   2. Build character mesh (C++)
 //   3. Preview in VTK (C++)
-
+//
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -49,7 +49,7 @@ void PrintUsage(const char* prog) {
 }
 
 bool ParseArgs(int argc, char* argv[], Options* opt) {
-    if (argc < 2 || manga::StartsWith(argv[1], "--")) {
+    if (argc < 2 || image::StartsWith(argv[1], "--")) {
         PrintUsage(argv[0]);
         return false;
     }
@@ -128,7 +128,7 @@ int RunCommand(const std::string& cmd) {
 }
 
 std::string FindPython() {
-    const char* env = std::getenv("MANGA_PYTHON");
+    const char* env = std::getenv("IMAGE_PYTHON");
     if (env && env[0] != '\0') {
         return env;
     }
@@ -147,20 +147,20 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    if (!manga::FileExists(opt.image_path)) {
+    if (!image::FileExists(opt.image_path)) {
         std::cerr << "Not found: " << opt.image_path << "\n";
         return 1;
     }
 
-    const std::string project_root = manga::ProjectRootFromExecutable(argv[0]);
-    const std::string stem = manga::Stem(opt.image_path);
-    const std::string folder = manga::Dirname(opt.image_path);
-    const std::string depth_path = manga::JoinPath(folder, stem + "_depth.png");
-    const std::string vtk_path = manga::JoinPath(folder, stem + ".vtk");
-    const std::string lineart_path = manga::JoinPath(folder, stem + "_lineart.jpg");
-    const std::string oriented_path = manga::JoinPath(folder, stem + "_oriented.jpg");
+    const std::string project_root = image::ProjectRootFromExecutable(argv[0]);
+    const std::string stem = image::Stem(opt.image_path);
+    const std::string folder = image::Dirname(opt.image_path);
+    const std::string depth_path = image::JoinPath(folder, stem + "_depth.png");
+    const std::string vtk_path = image::JoinPath(folder, stem + ".vtk");
+    const std::string lineart_path = image::JoinPath(folder, stem + "_lineart.jpg");
+    const std::string oriented_path = image::JoinPath(folder, stem + "_oriented.jpg");
     std::string mesh_image = opt.image_path;
-    if (manga::FileExists(oriented_path)) {
+    if (image::FileExists(oriented_path)) {
         mesh_image = oriented_path;
     }
     std::string texture_path = mesh_image;
@@ -168,19 +168,19 @@ int main(int argc, char* argv[]) {
         texture_path = lineart_path;
     }
 
-    const std::string mesh_builder = manga::ResolveSiblingBinary(argv[0], "build_character_mesh");
-    const std::string renderer = manga::ResolveSiblingBinary(argv[0], "render_mesh");
-    const std::string sidecar_script = manga::JoinPath(project_root, "make_sidecars.py");
-    const std::string orient_script = manga::JoinPath(project_root, "ensure_oriented.py");
+    const std::string mesh_builder = image::ResolveSiblingBinary(argv[0], "build_character_mesh");
+    const std::string renderer = image::ResolveSiblingBinary(argv[0], "render_mesh");
+    const std::string sidecar_script = image::JoinPath(project_root, "make_sidecars.py");
+    const std::string orient_script = image::JoinPath(project_root, "ensure_oriented.py");
 
     if (!opt.skip_sidecars) {
-        if (!manga::FileExists(sidecar_script)) {
+        if (!image::FileExists(sidecar_script)) {
             std::cerr << "Missing " << sidecar_script << "\n";
             return 1;
         }
-        std::string cmd = FindPython() + " " + manga::ShellQuote(sidecar_script) + " "
-                          + manga::ShellQuote(opt.image_path) + " --depth-model "
-                          + manga::ShellQuote(opt.depth_model) + " --mesh-levels "
+        std::string cmd = FindPython() + " " + image::ShellQuote(sidecar_script) + " "
+                          + image::ShellQuote(opt.image_path) + " --depth-model "
+                          + image::ShellQuote(opt.depth_model) + " --mesh-levels "
                           + std::to_string(opt.mesh_levels) + " --mesh-median "
                           + std::to_string(opt.mesh_median);
         if (opt.lineart) {
@@ -193,7 +193,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     } else {
-        if (!manga::FileExists(depth_path)) {
+        if (!image::FileExists(depth_path)) {
             std::cerr << "Missing " << depth_path << "; drop --skip-sidecars\n";
             return 1;
         }
@@ -204,13 +204,13 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    if (!manga::FileExists(oriented_path) && manga::FileExists(orient_script)) {
-        std::string orient_cmd = FindPython() + " " + manga::ShellQuote(orient_script) + " "
-                                 + manga::ShellQuote(opt.image_path);
+    if (!image::FileExists(oriented_path) && image::FileExists(orient_script)) {
+        std::string orient_cmd = FindPython() + " " + image::ShellQuote(orient_script) + " "
+                                 + image::ShellQuote(opt.image_path);
         if (RunCommand(orient_cmd) != 0) {
             return 1;
         }
-        if (manga::FileExists(oriented_path)) {
+        if (image::FileExists(oriented_path)) {
             mesh_image = oriented_path;
             if (!opt.lineart_texture) {
                 texture_path = oriented_path;
@@ -218,10 +218,10 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    std::string mesh_cmd = manga::ShellQuote(mesh_builder) + " "
-                           + manga::ShellQuote(mesh_image) + " --depth "
-                           + manga::ShellQuote(depth_path) + " --output "
-                           + manga::ShellQuote(vtk_path) + " --step " + std::to_string(opt.step)
+    std::string mesh_cmd = image::ShellQuote(mesh_builder) + " "
+                           + image::ShellQuote(mesh_image) + " --depth "
+                           + image::ShellQuote(depth_path) + " --output "
+                           + image::ShellQuote(vtk_path) + " --step " + std::to_string(opt.step)
                            + " --zdim " + std::to_string(opt.zdim) + " --z-max "
                            + std::to_string(opt.z_max) + " --z-scale "
                            + std::to_string(opt.z_scale);
@@ -235,8 +235,8 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    std::string view_cmd = manga::ShellQuote(renderer) + " " + manga::ShellQuote(vtk_path) + " "
-                           + manga::ShellQuote(texture_path);
+    std::string view_cmd = image::ShellQuote(renderer) + " " + image::ShellQuote(vtk_path) + " "
+                           + image::ShellQuote(texture_path);
     if (opt.flip_v) {
         view_cmd += " --flip-v";
     }
@@ -247,3 +247,4 @@ int main(int argc, char* argv[]) {
     }
     return 0;
 }
+

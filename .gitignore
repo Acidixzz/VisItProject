@@ -1,5 +1,6 @@
 # Virtual environments
 manga_env/
+image_pipeline_env/
 .venv/
 venv/
 env/
@@ -41,7 +42,7 @@ __pycache__/
 Thumbs.db
 
 # Misc local folders
-MangaPopup/
+ImagePopup/
 _test_*.png
 assets/
 
