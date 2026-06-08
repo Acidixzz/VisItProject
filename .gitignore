@@ -17,6 +17,8 @@ __pycache__/
 # Generated sidecars and meshes
 *_depth.png
 *_edges.png
+*_oriented.jpg
+*_lineart.jpg
 *_intensity.png
 *_mask.png
 *.vtk
@@ -42,3 +44,6 @@ Thumbs.db
 MangaPopup/
 _test_*.png
 assets/
+
+# C++ build artifacts
+cpp/build/
