@@ -92,11 +92,6 @@ def make_depth(
     depth = prepare_depth_for_mesh(depth, median_ksize=mesh_median, levels=mesh_levels)
     return Image.fromarray(depth)
 
-
-def make_edges(img):
-    return img.convert("L").filter(ImageFilter.FIND_EDGES)
-
-
 def make_lineart_bw(
     img,
     paper_threshold=242,
@@ -247,14 +242,10 @@ def generate_sidecars(
         mesh_levels=mesh_levels,
         mesh_median=mesh_median,
     )
-    print("Generating edges...")
-    edges = make_edges(lineart_img if lineart_img is not None else source)
 
     depth.save(depth_path)
-    edges.save(edges_path)
     print(f"Wrote {depth_path}")
-    print(f"Wrote {edges_path}")
-    return depth_path, edges_path, img, mesh_image_path
+    return depth_path, mesh_image_path
 
 
 # ---------------------------------------------------------------------------
@@ -586,7 +577,7 @@ def main():
         print(f"Using existing sidecars under {folder}")
     else:
         lineart = args.lineart or args.lineart_texture
-        depth_path, _, _, mesh_image_path = generate_sidecars(
+        depth_path, mesh_image_path = generate_sidecars(
             image_path,
             depth_model=args.depth_model,
             mesh_levels=args.mesh_levels,
