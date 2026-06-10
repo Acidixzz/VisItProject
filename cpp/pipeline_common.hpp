@@ -60,7 +60,7 @@ inline bool FileExists(const std::string& path) {
 inline std::string ProjectRootFromExecutable(const char* argv0) {
     std::string dir = ExecutableDir(argv0);
     for (int depth = 0; depth < 5; ++depth) {
-        if (FileExists(JoinPath(dir, "image_pipeline.py"))) {
+        if (FileExists(JoinPath(dir, "depth_image_generator.py"))) {
             return dir;
         }
         const std::string parent = Dirname(dir);

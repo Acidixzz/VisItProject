@@ -1,10 +1,9 @@
 // End-to-end image mesh pipeline (C++ orchestrator):
-//   1. Generate *_depth.png via Python (Depth-Anything still needs torch)
+//   1. Generate *_depth.png via Python (Depth-Anything Base)
 //   2. Build character mesh (C++)
 //   3. Preview in VTK (C++)
 //
 #include <cstdlib>
-#include <fstream>
 #include <iostream>
 #include <string>
 
@@ -12,18 +11,15 @@
 
 namespace {
 
+constexpr int kMeshZdim = 48;
+constexpr double kMeshZMax = 400.0;
+constexpr double kMeshZScale = 1.0;
+constexpr int kDefaultStep = 12;
+
 struct Options {
     std::string image_path;
-    bool skip_sidecars = false;
-    std::string depth_model = "small";
-    int mesh_levels = 64;
-    int mesh_median = 3;
-    int step = 12;
-    int zdim = 48;
-    double z_max = 400.0;
-    double z_scale = 1.0;
+    int step = kDefaultStep;
     bool no_view = false;
-    bool flip_v = false;
     bool lineart = false;
     bool lineart_texture = false;
 };
@@ -31,19 +27,11 @@ struct Options {
 void PrintUsage(const char* prog) {
     std::cerr
         << "Usage: " << prog << " <image.jpg|png> [options]\n"
-        << "  --skip-sidecars      Use existing *_depth.png\n"
-        << "  --depth-model M      small|base (default: small)\n"
-        << "  --mesh-levels N      Depth quantization steps (default: 64)\n"
-        << "  --mesh-median N      Median filter on depth, 0=off (default: 3)\n"
-        << "  --step N             XY subsample step (default: 12, higher=fewer polys)\n"
-        << "  --zdim N             Z volume resolution (default: 48)\n"
-        << "  --z-max F            World Z extent (default: 400)\n"
-        << "  --z-scale F          Z relief multiplier (default: 1)\n"
-        << "  --no-view            Build sidecars + VTK only\n"
-        << "  --flip-v             Flip texture V in the viewer\n"
-        << "  --lineart            Build line-art; depth from line-art (Depth-Anything)\n"
-        << "  --lineart-texture    Use line-art as mesh texture too (implies --lineart)\n"
-        << "  --lowpoly            Coarse mesh preset (--step 24 --zdim 24 --mesh-levels 16)\n";
+        << "  --step N             XY subsample step (default: " << kDefaultStep
+        << ", higher=fewer polys)\n"
+        << "  --no-view            Build mesh only, skip viewer\n"
+        << "  --lineart            Depth from cleaned line-art (sketches)\n"
+        << "  --lineart-texture    Use line-art as viewer texture (implies --lineart)\n";
 }
 
 bool ParseArgs(int argc, char* argv[], Options* opt) {
@@ -63,49 +51,17 @@ bool ParseArgs(int argc, char* argv[], Options* opt) {
             return argv[++i];
         };
 
-        if (arg == "--skip-sidecars") {
-            opt->skip_sidecars = true;
-        } else if (arg == "--depth-model") {
-            const char* v = need("--depth-model");
-            if (!v) return false;
-            opt->depth_model = v;
-        } else if (arg == "--mesh-levels") {
-            const char* v = need("--mesh-levels");
-            if (!v) return false;
-            opt->mesh_levels = std::stoi(v);
-        } else if (arg == "--mesh-median") {
-            const char* v = need("--mesh-median");
-            if (!v) return false;
-            opt->mesh_median = std::stoi(v);
-        } else if (arg == "--step") {
+        if (arg == "--step") {
             const char* v = need("--step");
             if (!v) return false;
-            opt->step = std::stoi(v);
-        } else if (arg == "--zdim") {
-            const char* v = need("--zdim");
-            if (!v) return false;
-            opt->zdim = std::stoi(v);
-        } else if (arg == "--z-max") {
-            const char* v = need("--z-max");
-            if (!v) return false;
-            opt->z_max = std::stod(v);
-        } else if (arg == "--z-scale") {
-            const char* v = need("--z-scale");
-            if (!v) return false;
-            opt->z_scale = std::stod(v);
+            opt->step = std::max(1, std::stoi(v));
         } else if (arg == "--no-view") {
             opt->no_view = true;
-        } else if (arg == "--flip-v") {
-            opt->flip_v = true;
         } else if (arg == "--lineart") {
             opt->lineart = true;
         } else if (arg == "--lineart-texture") {
             opt->lineart = true;
             opt->lineart_texture = true;
-        } else if (arg == "--lowpoly") {
-            opt->step = 24;
-            opt->zdim = 24;
-            opt->mesh_levels = 16;
         } else if (arg == "--help" || arg == "-h") {
             PrintUsage(argv[0]);
             return false;
@@ -166,7 +122,7 @@ int main(int argc, char* argv[]) {
 
     const std::string mesh_builder = image::ResolveSiblingBinary(argv[0], "build_character_mesh");
     const std::string renderer = image::ResolveSiblingBinary(argv[0], "render_mesh");
-    const std::string py_script = image::JoinPath(project_root, "image_pipeline.py");
+    const std::string py_script = image::JoinPath(project_root, "depth_image_generator.py");
 
     if (!image::FileExists(py_script)) {
         std::cerr << "Missing " << py_script << "\n";
@@ -175,13 +131,7 @@ int main(int argc, char* argv[]) {
 
     {
         std::string cmd = FindPython() + " " + image::ShellQuote(py_script) + " "
-                          + image::ShellQuote(opt.image_path) + " --sidecars-only --depth-model "
-                          + image::ShellQuote(opt.depth_model) + " --mesh-levels "
-                          + std::to_string(opt.mesh_levels) + " --mesh-median "
-                          + std::to_string(opt.mesh_median);
-        if (opt.skip_sidecars) {
-            cmd += " --skip-sidecars";
-        }
+                          + image::ShellQuote(opt.image_path);
         if (opt.lineart) {
             cmd += " --lineart";
         }
@@ -204,9 +154,9 @@ int main(int argc, char* argv[]) {
                            + image::ShellQuote(mesh_image) + " --depth "
                            + image::ShellQuote(depth_path) + " --output "
                            + image::ShellQuote(vtk_path) + " --step " + std::to_string(opt.step)
-                           + " --zdim " + std::to_string(opt.zdim) + " --z-max "
-                           + std::to_string(opt.z_max) + " --z-scale "
-                           + std::to_string(opt.z_scale);
+                           + " --zdim " + std::to_string(kMeshZdim) + " --z-max "
+                           + std::to_string(kMeshZMax) + " --z-scale "
+                           + std::to_string(kMeshZScale);
 
     std::cout << "Building character mesh...\n";
     if (RunCommand(mesh_cmd) != 0) {
@@ -219,9 +169,6 @@ int main(int argc, char* argv[]) {
 
     std::string view_cmd = image::ShellQuote(renderer) + " " + image::ShellQuote(vtk_path) + " "
                            + image::ShellQuote(texture_path);
-    if (opt.flip_v) {
-        view_cmd += " --flip-v";
-    }
 
     std::cout << "Opening viewer...\n";
     if (RunCommand(view_cmd) != 0) {
@@ -229,4 +176,3 @@ int main(int argc, char* argv[]) {
     }
     return 0;
 }
-

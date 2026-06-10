@@ -3,15 +3,11 @@
 #
 # Usage:
 #   ./run_all.sh luffy.jpg
-#   ./run_all.sh luffy.jpg --z-scale 2 --skip-sidecars
 #   ./run_all.sh luffy.jpg --lineart
 #   ./run_all.sh luffy.jpg --lineart --lineart-texture
-#   ./run_all.sh luffy.jpg --lineart --lowpoly   # recommended: line-art depth + coarse mesh
-#   ./run_all.sh luffy.jpg --no-view          # build only, skip viewer
+#   ./run_all.sh luffy.jpg --step 24
+#   ./run_all.sh luffy.jpg --no-view
 #   ./run_all.sh --help
-#
-# Poly count ~ (image_width/step) * (image_height/step). Default step=12 (~350k polys).
-# Use --lowpoly (step=24) for ~50k polys, or --step 32 for even fewer.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -79,10 +75,10 @@ done
 if [[ "$HELP_ONLY" == "true" ]]; then
     sed -n '2,11p' "$0" | sed 's/^# \?//'
     echo
-    ensure_python_env
+    ensure_cpp_binaries
     echo
-    echo "Python script flags:"
-    "$IMAGE_PYTHON" "$SCRIPT_DIR/image_pipeline.py" --help
+    echo "Pipeline flags:"
+    "$CPP_BUILD_DIR/image_pipeline" --help || true
     exit 0
 fi
 

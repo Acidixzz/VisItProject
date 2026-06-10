@@ -34,6 +34,10 @@ __pycache__/
 *.gif
 *.webp
 
+# README example images (keep assets/ trackable)
+!assets/
+!assets/**
+
 # IDE / OS
 .cursor/
 .vscode/
@@ -44,7 +48,6 @@ Thumbs.db
 # Misc local folders
 ImagePopup/
 _test_*.png
-assets/
 
 # C++ build artifacts
 cpp/build/
