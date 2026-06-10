@@ -180,7 +180,7 @@ int main(int argc, char* argv[]) {
 
             int sidecarX = srcX;
             int sidecarY = srcY;
-            // PNG sidecars from make_sidecars.py match image (W,H); use direct sampling.
+            // PNG sidecars from image_pipeline.py match image (W,H); use direct sampling.
             // VisIt only transposes when VTK depth dims are swapped vs the source image.
 
             const float depthValue = image::SampleSidecar(depthImg, sidecarX, sidecarY);

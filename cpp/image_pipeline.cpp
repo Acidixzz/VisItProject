@@ -1,5 +1,5 @@
 // End-to-end image mesh pipeline (C++ orchestrator):
-//   1. Generate *_depth.png / *_edges.png via Python (Depth-Anything still needs torch)
+//   1. Generate *_depth.png via Python (Depth-Anything still needs torch)
 //   2. Build character mesh (C++)
 //   3. Preview in VTK (C++)
 //
@@ -24,7 +24,6 @@ struct Options {
     double z_scale = 1.0;
     bool no_view = false;
     bool flip_v = false;
-    bool sidecars_only = false;
     bool lineart = false;
     bool lineart_texture = false;
 };
@@ -32,7 +31,7 @@ struct Options {
 void PrintUsage(const char* prog) {
     std::cerr
         << "Usage: " << prog << " <image.jpg|png> [options]\n"
-        << "  --skip-sidecars      Use existing *_depth.png / *_edges.png\n"
+        << "  --skip-sidecars      Use existing *_depth.png\n"
         << "  --depth-model M      small|base (default: small)\n"
         << "  --mesh-levels N      Depth quantization steps (default: 64)\n"
         << "  --mesh-median N      Median filter on depth, 0=off (default: 3)\n"
@@ -42,8 +41,7 @@ void PrintUsage(const char* prog) {
         << "  --z-scale F          Z relief multiplier (default: 1)\n"
         << "  --no-view            Build sidecars + VTK only\n"
         << "  --flip-v             Flip texture V in the viewer\n"
-        << "  --sidecars-only      Only generate depth/edges sidecars\n"
-        << "  --lineart            Build line-art; depth + edges from line-art (Depth-Anything)\n"
+        << "  --lineart            Build line-art; depth from line-art (Depth-Anything)\n"
         << "  --lineart-texture    Use line-art as mesh texture too (implies --lineart)\n"
         << "  --lowpoly            Coarse mesh preset (--step 24 --zdim 24 --mesh-levels 16)\n";
 }
@@ -99,8 +97,6 @@ bool ParseArgs(int argc, char* argv[], Options* opt) {
             opt->no_view = true;
         } else if (arg == "--flip-v") {
             opt->flip_v = true;
-        } else if (arg == "--sidecars-only") {
-            opt->sidecars_only = true;
         } else if (arg == "--lineart") {
             opt->lineart = true;
         } else if (arg == "--lineart-texture") {
@@ -170,19 +166,22 @@ int main(int argc, char* argv[]) {
 
     const std::string mesh_builder = image::ResolveSiblingBinary(argv[0], "build_character_mesh");
     const std::string renderer = image::ResolveSiblingBinary(argv[0], "render_mesh");
-    const std::string sidecar_script = image::JoinPath(project_root, "make_sidecars.py");
-    const std::string orient_script = image::JoinPath(project_root, "ensure_oriented.py");
+    const std::string py_script = image::JoinPath(project_root, "image_pipeline.py");
 
-    if (!opt.skip_sidecars) {
-        if (!image::FileExists(sidecar_script)) {
-            std::cerr << "Missing " << sidecar_script << "\n";
-            return 1;
-        }
-        std::string cmd = FindPython() + " " + image::ShellQuote(sidecar_script) + " "
-                          + image::ShellQuote(opt.image_path) + " --depth-model "
+    if (!image::FileExists(py_script)) {
+        std::cerr << "Missing " << py_script << "\n";
+        return 1;
+    }
+
+    {
+        std::string cmd = FindPython() + " " + image::ShellQuote(py_script) + " "
+                          + image::ShellQuote(opt.image_path) + " --sidecars-only --depth-model "
                           + image::ShellQuote(opt.depth_model) + " --mesh-levels "
                           + std::to_string(opt.mesh_levels) + " --mesh-median "
                           + std::to_string(opt.mesh_median);
+        if (opt.skip_sidecars) {
+            cmd += " --skip-sidecars";
+        }
         if (opt.lineart) {
             cmd += " --lineart";
         }
@@ -192,29 +191,12 @@ int main(int argc, char* argv[]) {
         if (RunCommand(cmd) != 0) {
             return 1;
         }
-    } else {
-        if (!image::FileExists(depth_path)) {
-            std::cerr << "Missing " << depth_path << "; drop --skip-sidecars\n";
-            return 1;
-        }
-        std::cout << "Using existing sidecars under " << folder << "\n";
     }
 
-    if (opt.sidecars_only) {
-        return 0;
-    }
-
-    if (!image::FileExists(oriented_path) && image::FileExists(orient_script)) {
-        std::string orient_cmd = FindPython() + " " + image::ShellQuote(orient_script) + " "
-                                 + image::ShellQuote(opt.image_path);
-        if (RunCommand(orient_cmd) != 0) {
-            return 1;
-        }
-        if (image::FileExists(oriented_path)) {
-            mesh_image = oriented_path;
-            if (!opt.lineart_texture) {
-                texture_path = oriented_path;
-            }
+    if (image::FileExists(oriented_path)) {
+        mesh_image = oriented_path;
+        if (!opt.lineart_texture) {
+            texture_path = oriented_path;
         }
     }
 

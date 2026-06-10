@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 End-to-end image mesh pipeline:
-  1. Generate *_depth.png and *_edges.png sidecars
+  1. Generate *_depth.png sidecar
   2. Build character mesh from depth (VisIt GetCharacterMesh logic)
   3. Preview in VTK with the source image as texture (C++ viewer)
 
@@ -34,7 +34,7 @@ _depth_pipeline = None
 
 
 # ---------------------------------------------------------------------------
-# Sidecars (from make_sidecars.py)
+# Sidecars (depth + optional line-art)
 # ---------------------------------------------------------------------------
 
 
@@ -172,16 +172,6 @@ def _resolve_mesh_image_path(image_path, source, folder, stem):
     return image_path
 
 
-def resolve_mesh_image_path(image_path):
-    """Pick oriented JPEG for mesh/texture if a prior run created one."""
-    folder = os.path.dirname(os.path.abspath(image_path))
-    stem = os.path.splitext(os.path.basename(image_path))[0]
-    oriented_path = os.path.join(folder, f"{stem}_oriented.jpg")
-    if os.path.isfile(oriented_path):
-        return oriented_path
-    return image_path
-
-
 def ensure_oriented(image_path):
     """Create <stem>_oriented.jpg when EXIF rotation is present."""
     image_path = os.path.abspath(image_path)
@@ -212,13 +202,11 @@ def generate_sidecars(
 ):
     raw = Image.open(image_path)
     source = ImageOps.exif_transpose(raw).convert("RGB")
-    img = source
     folder = os.path.dirname(os.path.abspath(image_path))
     stem = os.path.splitext(os.path.basename(image_path))[0]
     mesh_image_path = _resolve_mesh_image_path(image_path, source, folder, stem)
 
     depth_path = os.path.join(folder, f"{stem}_depth.png")
-    edges_path = os.path.join(folder, f"{stem}_edges.png")
 
     lineart_img = None
     if lineart:
@@ -233,8 +221,6 @@ def generate_sidecars(
         lineart_path = os.path.join(folder, f"{stem}_lineart.jpg")
         lineart_img.save(lineart_path, quality=95)
         print(f"Wrote {lineart_path}")
-        if lineart_texture:
-            img = lineart_img
 
     depth_source = lineart_img if lineart_img is not None else source
     if lineart_img is not None:
@@ -509,7 +495,7 @@ def parse_args():
     p.add_argument(
         "--skip-sidecars",
         action="store_true",
-        help="Use existing *_depth.png / *_edges.png",
+        help="Use existing *_depth.png",
     )
     p.add_argument("--depth-model", choices=("small", "base"), default="small")
     p.add_argument("--mesh-levels", type=int, default=64, help="Depth quantization steps (default 64)")
@@ -525,7 +511,7 @@ def parse_args():
     )
     p.add_argument("--no-view", action="store_true", help="Build sidecars + VTK only, skip interactive viewer")
     p.add_argument("--flip-v", action="store_true", help="Flip texture V in the viewer")
-    p.add_argument("--sidecars-only", action="store_true", help="Only generate depth/edges, no mesh")
+    p.add_argument("--sidecars-only", action="store_true", help="Only generate depth sidecar, no mesh")
     p.add_argument(
         "--mesh-cpp",
         action="store_true",
@@ -539,7 +525,7 @@ def parse_args():
     p.add_argument(
         "--lineart",
         action="store_true",
-        help="Build B/W line-art; depth and edges from line-art (Depth-Anything on line-art)",
+        help="Build B/W line-art; depth from line-art (Depth-Anything on line-art)",
     )
     p.add_argument(
         "--lineart-texture",
