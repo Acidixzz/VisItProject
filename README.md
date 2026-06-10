@@ -80,9 +80,9 @@ Using `entrance.jpg`:
 |<br>
 v
 
-**Depth sidecar**
+**Depth**
 
-<img src="assets/entrance_depth.png" width="420" alt="Depth sidecar">
+<img src="assets/entrance_depth.png" width="420" alt="Depth">
 
 |<br>
 v
